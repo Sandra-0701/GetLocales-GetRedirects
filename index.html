@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Tools</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        textarea, input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>URL Tools</h1>
+   
+    <form id="urlForm">
+        <textarea id="inputUrls" rows="5" placeholder="Enter URLs, one per line"></textarea>
+        <button type="button" onclick="fetchRedirectUrls()">Get Redirect URLs</button>
+    </form>
+ 
+    <form id="localeForm">
+        <input type="text" id="baseUrl" placeholder="Enter base URL (e.g., https://www.microsoft.com/)">
+        <button type="button" onclick="generateLocaleUrls()">Generate Locale URLs</button>
+    </form>
+ 
+    <div class="results">
+        <h3>Results:</h3>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Redirected URL</th>
+                    <th>Status Code</th>
+                </tr>
+            </thead>
+            <tbody>
+               
+            </tbody>
+        </table>
+    </div>
+ 
+    <script>
+        async function fetchRedirectUrls() {
+            const input = document.getElementById('inputUrls').value;
+            const urls = input.split('\n').map(url => url.trim()).filter(url => url);
+ 
+            try {
+                const response = await fetch('http://localhost:3000/getRedirectUrls', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls })
+                });
+ 
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+ 
+                const results = await response.json();
+                const tbody = document.querySelector('#resultsTable tbody');
+                tbody.innerHTML = '';
+ 
+                results.forEach(result => {
+                    const row = document.createElement('tr');
+                    const redirectedUrlCell = document.createElement('td');
+                    const statusCodeCell = document.createElement('td');
+ 
+                    if (result.final) {
+                        redirectedUrlCell.textContent = result.final;
+                        statusCodeCell.textContent = result.status;
+                    } else {
+                        redirectedUrlCell.textContent = 'Error';
+                        statusCodeCell.textContent = result.status;
+                    }
+ 
+                    row.appendChild(redirectedUrlCell);
+                    row.appendChild(statusCodeCell);
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching redirect URLs:', error);
+                // Display error in table
+                const tbody = document.querySelector('#resultsTable tbody');
+                tbody.innerHTML = `<tr><td colspan="2">Error: ${error.message}</td></tr>`;
+            }
+        }
+ 
+        function generateLocaleUrls() {
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            if (!baseUrl) {
+                alert('Please enter a base URL.');
+                return;
+            }
+ 
+            // Ensure the base URL has the correct scheme
+            const correctedBaseUrl = baseUrl.startsWith('http') ? baseUrl : 'https://' + baseUrl.replace(/^https?:\/\//, '');
+ 
+            const locales = [
+                'en-us', 'ar-iq', 'ar-ly', 'ar-sa', 'ar-ww', 'bs-ba', 'en-au', 'en-ca', 'en-cy', 'en-gb',
+                'en-hk', 'en-ie', 'en-lb', 'en-lk', 'en-mt', 'en-my', 'en-ng', 'en-nz', 'en-ph', 'en-pk',
+                'en-sg', 'en-ww', 'en-za', 'et-ee', 'lt-lt', 'lv-lv', 'ro-md', 'ru-by', 'ru-kz',
+                'sr-latn-me', 'vi-vn', 'es-es', 'es-ar', 'es-bo', 'es-co', 'es-cr', 'es-do', 'es-ec', 'es-gt',
+                'es-hn', 'es-mx', 'es-ni', 'es-pa', 'es-pr', 'es-py', 'es-sv', 'es-uy', 'es-ve', 'fr-fr', 'fr-be',
+                'fr-ca', 'fr-dz', 'fr-ma', 'fr-tn', 'it-it', 'ko-kr', 'pt-br'
+            ];
+ 
+            const results = locales.map(locale => {
+                const url = new URL(correctedBaseUrl);
+                const pathParts = url.pathname.split('/').filter(part => part);
+               
+                // Insert locale after the domain
+                if (url.hostname.startsWith('www')) {
+                    pathParts.unshift(locale);
+                } else {
+                    pathParts.splice(1, 0, locale);
+                }
+ 
+                url.pathname = '/' + pathParts.join('/');
+                return url.href;
+            });
+ 
+            const tbody = document.querySelector('#resultsTable tbody');
+            tbody.innerHTML = '';
+            results.forEach(url => {
+                const row = document.createElement('tr');
+                const urlCell = document.createElement('td');
+                urlCell.textContent = url;
+                row.appendChild(urlCell);
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
