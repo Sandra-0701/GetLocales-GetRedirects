@@ -1,10 +1,4 @@
-import express from 'express';
 import fetch from 'node-fetch';
-import cors from 'cors';
-
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 const MAX_REDIRECTIONS = 10;
 const TIMEOUT = 10000; // Increased timeout to 10 seconds
@@ -54,23 +48,22 @@ async function getFinalUrl(url, redirects = 0) {
     }
 }
 
-// Endpoint to handle POST requests for redirect URLs
-app.post('/getRedirectUrls', async (req, res) => {
-    const { urls } = req.body;
+export default async function handler(req, res) {
+    if (req.method === 'POST') {
+        const { urls } = req.body;
 
-    if (!urls || !Array.isArray(urls)) {
-        return res.status(400).json({ error: 'Invalid input: "urls" should be an array of URLs.' });
+        if (!urls || !Array.isArray(urls)) {
+            return res.status(400).json({ error: 'Invalid input: "urls" should be an array of URLs.' });
+        }
+
+        try {
+            const results = await Promise.all(urls.map(url => getFinalUrl(url)));
+            res.status(200).json(results);
+        } catch (error) {
+            res.status(500).json({ error: 'Failed to process URLs' });
+        }
+    } else {
+        res.setHeader('Allow', ['POST']);
+        res.status(405).end(`Method ${req.method} Not Allowed`);
     }
-
-    try {
-        const results = await Promise.all(urls.map(url => getFinalUrl(url)));
-        res.json(results);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to process URLs' });
-    }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+}
