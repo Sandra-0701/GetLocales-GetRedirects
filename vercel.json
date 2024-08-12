@@ -4,13 +4,15 @@
       {
         "src": "server.js",
         "use": "@vercel/node",
-        "config": {}
+        "config": {
+          "runtime": "nodejs14.x"
+        }
       }
     ],
     "routes": [
       {
-        "src": "index.html",
-        "dest": "/"
+        "src": "/getRedirectUrls",
+        "dest": "/getRedirectUrls"
       }
     ]
   }
